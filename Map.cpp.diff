@@ -1,4 +1,4 @@
-*** Map.cpp.old	2011-10-23 17:12:07.772700000 +0200
+*** Map.cpp.old	2011-12-10 23:49:44.265550000 +0100
 --- Map.cpp	2011-12-06 20:55:48.424550000 +0100
 ***************
 *** 219,227 ****
@@ -16,101 +16,224 @@
 + 
       sScriptMgr->OnCreateMap(this);
   }
---- 271,290 ----
-      }
   
-      Cell cell(p);
-      if (!IsGridLoaded(GridCoord(cell.data.Part.grid_x, cell.data.Part.grid_y)))
-          return;
-  
-      sLog->outStaticDebug("Switch object " UI64FMTD " from grid[%u, %u] %u", obj->GetGUID(), cell.data.Part.grid_x, cell.data.Part.grid_y, on);
-      NGridType *ngrid = getNGrid(cell.GridX(), cell.GridY());
-      ASSERT(ngrid != NULL);
-  
-      GridType &grid = ngrid->GetGridType(cell.CellX(), cell.CellY());
-  
-+     obj->RemoveFromGrid(); 
-      if (on)
-          grid.AddWorldObject<T>(obj);
-      else
-          grid.AddGridObject<T>(obj);
-      obj->m_isWorldObject = on;
-  }
---- 380,401 ----
-      EnsureGridLoaded(Cell(x, y));
-  }
-  
-! bool Map::AddPlayerToMap(Player* player)
-  {
-!     CellCoord cellCoord = Trinity::ComputeCellCoord(player->GetPositionX(), player->GetPositionY());
-!     if (!cellCoord.IsCoordValid())
-      {
-!         sLog->outError("Map::Add: Player (GUID: %u) has invalid coordinates X:%f Y:%f grid cell [%u:%u]", player->GetGUIDLow(), player->GetPositionX(), player->GetPositionY(), cellCoord.x_coord, cellCoord.y_coord);
-          return false;
-      }
-  
-!     Cell cell(cellCoord);
-      EnsureGridLoadedForActiveObject(cell, player);
-      AddToGrid(player, cell);
-  
-+     // Check if we are adding to correct map
-+     ASSERT (player->GetMap() == this);
-+     player->SetMap(this);
-      player->AddToWorld();
-  
-      SendInitSelf(player);
---- 420,476 ----
-  }
-  
-  template<class T>
-! bool Map::AddToMap(T *obj)
-  {
-!     //TODO: Needs clean up. An object should not be added to map twice.
-!     if (obj->IsInWorld())
-      {
-!         ASSERT(obj->IsInGrid());
-!         obj->UpdateObjectVisibility(true);
-!         return true;
-      }
-  
-!     CellCoord cellCoord = Trinity::ComputeCellCoord(obj->GetPositionX(), obj->GetPositionY());
-!     //It will create many problems (including crashes) if an object is not added to grid after creation
-!     //The correct way to fix it is to make AddToMap return false and delete the object if it is not added to grid
-!     //But now AddToMap is used in too many places, I will just see how many ASSERT failures it will cause
-!     ASSERT(cellCoord.IsCoordValid());
-!     if (!cellCoord.IsCoordValid())
-      {
-!         sLog->outError("Map::Add: Object " UI64FMTD " has invalid coordinates X:%f Y:%f grid cell [%u:%u]", obj->GetGUID(), obj->GetPositionX(), obj->GetPositionY(), cellCoord.x_coord, cellCoord.y_coord);
-!         return false; //Should delete object
-      }
-  
-+     Cell cell(cellCoord);
-      if (obj->isActiveObject())
-          EnsureGridLoadedForActiveObject(cell, obj);
-      else
-          EnsureGridCreated(GridCoord(cell.GridX(), cell.GridY()));
-      AddToGrid(obj, cell);
-!     sLog->outStaticDebug("Object %u enters grid[%u, %u]", GUID_LOPART(obj->GetGUID()), cell.GridX(), cell.GridY());
-! 
-!     //Must already be set before AddToMap. Usually during obj->Create.
-      //obj->SetMap(this);
-      obj->AddToWorld();
-+ 
-      InitializeObject(obj);
-  
-      if (obj->isActiveObject())
-          AddToActive(obj);
-  
-      //something, such as vehicle, needs to be update immediately
-      //also, trigger needs to cast spell, if not update, cannot see visual
-      obj->UpdateObjectVisibility(true);
-+     return true;
 ***************
-*** 2917,2919 ****
+*** 685,691 ****
+      }
+  }
+  
+! void Map::PlayerRelocation(Player* player, float x, float y, float z, float orientation)
+  {
+      ASSERT(player);
+  
+--- 690,697 ----
+      }
+  }
+  
+! void
+! Map::PlayerRelocation(Player* player, float x, float y, float z, float orientation)
+  {
+      ASSERT(player);
+  
+***************
+*** 709,715 ****
+      player->UpdateObjectVisibility(false);
+  }
+  
+! void Map::CreatureRelocation(Creature* creature, float x, float y, float z, float ang, bool respawnRelocationOnFail)
+  {
+      ASSERT(CheckGridIntegrity(creature, false));
+  
+--- 715,722 ----
+      player->UpdateObjectVisibility(false);
+  }
+  
+! void
+! Map::CreatureRelocation(Creature* creature, float x, float y, float z, float ang, bool respawnRelocationOnFail)
+  {
+      ASSERT(CheckGridIntegrity(creature, false));
+  
+***************
+*** 1159,1165 ****
+      return true;
+  }
+  
+! bool GridMap::loadLiquidData(FILE* in, uint32 offset, uint32 /*size*/)
+  {
+      map_liquidHeader header;
+      fseek(in, offset, SEEK_SET);
+--- 1166,1172 ----
+      return true;
+  }
+  
+! bool  GridMap::loadLiquidData(FILE* in, uint32 offset, uint32 /*size*/)
+  {
+      map_liquidHeader header;
+      fseek(in, offset, SEEK_SET);
+***************
+*** 1201,1212 ****
+      return m_area_map[lx*16 + ly];
+  }
+  
+! float GridMap::getHeightFromFlat(float /*x*/, float /*y*/) const
+  {
+      return m_gridHeight;
+  }
+  
+! float GridMap::getHeightFromFloat(float x, float y) const
+  {
+      if (!m_V8 || !m_V9)
+          return m_gridHeight;
+--- 1208,1219 ----
+      return m_area_map[lx*16 + ly];
+  }
+  
+! float  GridMap::getHeightFromFlat(float /*x*/, float /*y*/) const
+  {
+      return m_gridHeight;
+  }
+  
+! float  GridMap::getHeightFromFloat(float x, float y) const
+  {
+      if (!m_V8 || !m_V9)
+          return m_gridHeight;
+***************
+*** 1288,1294 ****
+      return a * x + b * y + c;
+  }
+  
+! float GridMap::getHeightFromUint8(float x, float y) const
+  {
+      if (!m_uint8_V8 || !m_uint8_V9)
+          return m_gridHeight;
+--- 1295,1301 ----
+      return a * x + b * y + c;
+  }
+  
+! float  GridMap::getHeightFromUint8(float x, float y) const
+  {
+      if (!m_uint8_V8 || !m_uint8_V9)
+          return m_gridHeight;
+***************
+*** 1355,1361 ****
+      return (float)((a * x) + (b * y) + c)*m_gridIntHeightMultiplier + m_gridHeight;
+  }
+  
+! float GridMap::getHeightFromUint16(float x, float y) const
+  {
+      if (!m_uint16_V8 || !m_uint16_V9)
+          return m_gridHeight;
+--- 1362,1368 ----
+      return (float)((a * x) + (b * y) + c)*m_gridIntHeightMultiplier + m_gridHeight;
+  }
+  
+! float  GridMap::getHeightFromUint16(float x, float y) const
+  {
+      if (!m_uint16_V8 || !m_uint16_V9)
+          return m_gridHeight;
+***************
+*** 1422,1428 ****
+      return (float)((a * x) + (b * y) + c)*m_gridIntHeightMultiplier + m_gridHeight;
+  }
+  
+! float GridMap::getLiquidLevel(float x, float y)
+  {
+      if (!m_liquid_map)
+          return m_liquidLevel;
+--- 1429,1435 ----
+      return (float)((a * x) + (b * y) + c)*m_gridIntHeightMultiplier + m_gridHeight;
+  }
+  
+! float  GridMap::getLiquidLevel(float x, float y)
+  {
+      if (!m_liquid_map)
+          return m_liquidLevel;
+***************
+*** 1441,1447 ****
+      return m_liquid_map[cx_int*m_liquid_width + cy_int];
+  }
+  
+! uint8 GridMap::getTerrainType(float x, float y)
+  {
+      if (!m_liquid_type)
+          return 0;
+--- 1448,1454 ----
+      return m_liquid_map[cx_int*m_liquid_width + cy_int];
+  }
+  
+! uint8  GridMap::getTerrainType(float x, float y)
+  {
+      if (!m_liquid_type)
+          return 0;
+***************
+*** 1824,1830 ****
+      return true;
+  }
+  
+! char const* Map::GetMapName() const
+  {
+      return i_mapEntry ? i_mapEntry->name[sWorld->GetDefaultDbcLocale()] : "UNNAMEDMAP\x0";
+  }
+--- 1831,1837 ----
+      return true;
+  }
+  
+! const char* Map::GetMapName() const
+  {
+      return i_mapEntry ? i_mapEntry->name[sWorld->GetDefaultDbcLocale()] : "UNNAMEDMAP\x0";
+  }
+***************
+*** 2621,2637 ****
+                      player->TeleportTo(player->GetBattlegroundEntryPoint());
+  }
+  
+! Creature* Map::GetCreature(uint64 guid)
+  {
+      return ObjectAccessor::GetObjectInMap(guid, this, (Creature*)NULL);
+  }
+  
+! GameObject* Map::GetGameObject(uint64 guid)
+  {
+      return ObjectAccessor::GetObjectInMap(guid, this, (GameObject*)NULL);
+  }
+  
+! DynamicObject* Map::GetDynamicObject(uint64 guid)
+  {
+      return ObjectAccessor::GetObjectInMap(guid, this, (DynamicObject*)NULL);
+  }
+--- 2628,2647 ----
+                      player->TeleportTo(player->GetBattlegroundEntryPoint());
+  }
+  
+! Creature*
+! Map::GetCreature(uint64 guid)
+  {
+      return ObjectAccessor::GetObjectInMap(guid, this, (Creature*)NULL);
+  }
+  
+! GameObject*
+! Map::GetGameObject(uint64 guid)
+  {
+      return ObjectAccessor::GetObjectInMap(guid, this, (GameObject*)NULL);
+  }
+  
+! DynamicObject*
+! Map::GetDynamicObject(uint64 guid)
+  {
+      return ObjectAccessor::GetObjectInMap(guid, this, (DynamicObject*)NULL);
+  }
+***************
+*** 2641,2643 ****
 --- 2651,2801 ----
       if (m_mapRefIter == player->GetMapRef())
           m_mapRefIter = m_mapRefIter->nocheck_prev();
   }
++ 
++ /*
++  * ****************** *
++  * DYNAMIC LOS SYSTEM *
++  * ****************** *
++  */
 + uint32 Map::AddDynLOSObject(float x, float y, float radius)
 + {
 +     DynamicLOSObject* obj = new DynamicLOSObject();

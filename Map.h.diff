@@ -1,4 +1,4 @@
-*** Map.h.old	2011-10-23 17:12:07.783700000 +0200
+*** Map.h.old	2011-12-10 23:49:44.268550000 +0100
 --- Map.h	2011-12-06 20:55:48.428550000 +0100
 ***************
 *** 200,205 ****
@@ -34,10 +34,16 @@
   {
       uint32 Parent;
 ***************
+*** 424,429 ****
 --- 448,468 ----
   
           InstanceMap* ToInstanceMap(){ if (IsDungeon())  return reinterpret_cast<InstanceMap*>(this); else return NULL;  }
           const InstanceMap* ToInstanceMap() const { if (IsDungeon())  return (const InstanceMap*)((InstanceMap*)this); else return NULL;  }
++     /*
++      **********************
++      * DYNAMIC LOS SYSTEM *
++      **********************
++     */
 +     public:
 +         uint32 AddDynLOSObject(float x, float y, float radius);
 +         uint32 AddDynLOSObject(float x, float y, float z, float radius, float height);
