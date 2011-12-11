@@ -1,0 +1,42 @@
+*** ScriptedCreature.cpp.old	2011-10-22 16:23:30.549300000 +0200
+--- ScriptedCreature.cpp	2011-12-06 20:55:47.245550000 +0100
+***************
+*** 474,479 ****
+--- 474,480 ----
+      _boundary(instance ? instance->GetBossBoundary(bossId) : NULL),
+      _bossId(bossId)
+  {
++     SetImmuneToPushPullEffects(true);
+  }
+  
+  void BossAI::_Reset()
+***************
+*** 486,491 ****
+--- 487,493 ----
+      summons.DespawnAll();
+      if (instance)
+          instance->SetBossState(_bossId, NOT_STARTED);
++     inFightAggroCheck_Timer = MAX_AGGRO_PULSE_TIMER;
+  }
+  
+  void BossAI::_JustDied()
+***************
+*** 499,504 ****
+--- 501,517 ----
+      }
+  }
+  
++ 
++ void BossAI::_DoAggroPulse(const uint32 diff)
++ {
++     if(inFightAggroCheck_Timer < diff)
++     {
++         if(me->getVictim() && me->getVictim()->ToPlayer())
++             DoAttackerGroupInCombat(me->getVictim()->ToPlayer());
++         inFightAggroCheck_Timer = MAX_AGGRO_PULSE_TIMER;
++     }else inFightAggroCheck_Timer -= diff;
++ }
++ 
+  void BossAI::_EnterCombat()
+  {
+      me->setActive(true);

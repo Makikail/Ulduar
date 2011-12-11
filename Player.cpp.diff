@@ -1,0 +1,18 @@
+*** Player.cpp.old	2011-12-10 23:49:43.995550000 +0100
+--- Player.cpp	2011-12-06 20:55:48.082550000 +0100
+***************
+*** 23539,23544 ****
+--- 23884,23896 ----
+      GetAchievementMgr().CompletedAchievement(entry);
+  }
+  
++ bool Player::HasAchieved(uint32 entry)
++ {
++     if(AchievementEntry const *achievement = sAchievementStore.LookupEntry(entry))
++         return GetAchievementMgr().HasAchieved(achievement);
++     return false;
++ }	
++ 
+  void Player::LearnTalent(uint32 talentId, uint32 talentRank)
+  {
+      uint32 CurTalentPoints = GetFreeTalentPoints();

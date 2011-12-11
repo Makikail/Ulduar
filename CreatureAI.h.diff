@@ -1,0 +1,13 @@
+*** CreatureAI.h.old	2011-10-10 17:28:18.747600000 +0200
+--- CreatureAI.h	2011-12-06 20:55:47.187550000 +0100
+***************
+*** 134,139 ****
+--- 134,141 ----
+          virtual void JustReachedHome() {}
+  
+          void DoZoneInCombat(Creature* creature = NULL, float maxRangeToNearestTarget = 50.0f);
++         void DoAttackerAreaInCombat(Unit* attacker, float range, Unit* pUnit = NULL);
++         void DoAttackerGroupInCombat(Player* attacker);
+  
+          // Called at text emote receive from player
+          virtual void ReceiveEmote(Player* /*player*/, uint32 /*emoteId*/) {}

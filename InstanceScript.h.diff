@@ -1,0 +1,14 @@
+*** InstanceScript.h.old	2011-12-10 23:49:44.237550000 +0100
+--- InstanceScript.h	2011-12-06 20:55:48.398550000 +0100
+***************
+*** 169,174 ****
+--- 169,177 ----
+          // Send Notify to all players in instance
+          void DoSendNotifyToInstance(char const* format, ...);
+  
++         // Complete Achievement for all players in instance
++         DECLSPEC_DEPRECATED void DoCompleteAchievement(uint32 achievement) ATTR_DEPRECATED;
++ 
+          // Update Achievement Criteria for all players in instance
+          void DoUpdateAchievementCriteria(AchievementCriteriaTypes type, uint32 miscValue1 = 0, uint32 miscValue2 = 0, Unit* unit = NULL);
+  
